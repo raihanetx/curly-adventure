@@ -1,14 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/components/auth-provider'
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('')
@@ -16,23 +17,26 @@ export default function AdminLogin() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      })
+    if (!email || !password) {
+      setError('Email and password are required')
+      setLoading(false)
+      return
+    }
 
-      if (result?.error) {
-        setError('Invalid credentials')
-      } else {
+    try {
+      const success = await login(email, password)
+      
+      if (success) {
         router.push('/admin/dashboard')
+      } else {
+        setError('Invalid credentials')
       }
     } catch (error) {
       setError('An error occurred. Please try again.')
@@ -87,7 +91,14 @@ export default function AdminLogin() {
               </Alert>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign In'
+              )}
             </Button>
           </form>
           <div className="mt-6 text-center">

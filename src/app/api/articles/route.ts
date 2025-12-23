@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { verifyToken } from '@/lib/auth-jwt'
 import { query } from '@/lib/db'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -24,13 +23,18 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
+    // Verify JWT token
+    const token = request.cookies.get('auth-token')?.value
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { title, excerpt, content, slug, published, authorId } = await request.json()
+    const user = verifyToken(token)
+    if (!user || user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { title, excerpt, content, slug, published } = await request.json()
 
     if (!title || !content || !slug) {
       return NextResponse.json({ error: 'Title, content, and slug are required' }, { status: 400 })
@@ -41,7 +45,7 @@ export async function POST(request: NextRequest) {
       `INSERT INTO articles (id, title, excerpt, content, slug, published, author_id, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
        RETURNING *`,
-      [id, title, excerpt || '', content, slug, published || false, authorId]
+      [id, title, excerpt || '', content, slug, published || false, user.id]
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })

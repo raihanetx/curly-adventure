@@ -1,11 +1,10 @@
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Edit, Trash2, FileText, Users } from 'lucide-react'
+import { Plus, Edit, Trash2, FileText, Users, LogOut } from 'lucide-react'
 import Link from 'next/link'
+import { query } from '@/lib/db'
 
 interface Article {
   id: string
@@ -30,7 +29,6 @@ interface Stats {
 
 async function getArticles(): Promise<Article[]> {
   try {
-    const { query } = await import('@/lib/db')
     const result = await query(`
       SELECT 
         a.id, a.title, a.excerpt, a.slug, a.published, a.created_at, a.updated_at,
@@ -61,8 +59,6 @@ async function getArticles(): Promise<Article[]> {
 
 async function getStats(): Promise<Stats> {
   try {
-    const { query } = await import('@/lib/db')
-    
     const articlesResult = await query('SELECT COUNT(*) as total, SUM(CASE WHEN published = true THEN 1 ELSE 0 END) as published FROM articles')
     const usersResult = await query('SELECT COUNT(*) as total FROM users')
     
@@ -87,12 +83,6 @@ async function getStats(): Promise<Stats> {
 }
 
 export default async function AdminDashboard() {
-  const session = await getServerSession(authOptions)
-  
-  if (!session) {
-    redirect('/admin/login')
-  }
-
   const articles = await getArticles()
   const stats = await getStats()
 
@@ -112,8 +102,14 @@ export default async function AdminDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-muted-foreground">
-                Welcome, {session.user?.name || session.user?.email}
+                Welcome, Admin
               </span>
+              <form action="/api/auth/logout" method="POST">
+                <Button type="submit" variant="outline" size="sm">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </form>
               <Link href="/">
                 <Button variant="outline">View Site</Button>
               </Link>
@@ -217,9 +213,11 @@ export default async function AdminDashboard() {
                           <Edit className="w-4 h-4" />
                         </Button>
                       </Link>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <form action={`/api/articles/${article.id}`} method="DELETE">
+                        <Button type="submit" variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </form>
                     </div>
                   </div>
                 </CardHeader>

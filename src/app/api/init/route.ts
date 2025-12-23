@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
-import bcrypt from 'bcryptjs'
+import { hashPassword } from '@/lib/auth-jwt'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function POST() {
@@ -43,7 +43,7 @@ export async function POST() {
 
     // Create admin user
     const adminId = uuidv4()
-    const hashedPassword = await bcrypt.hash('admin123', 10)
+    const hashedPassword = await hashPassword('admin123')
     
     await query(
       `INSERT INTO users (id, email, name, password, role, created_at, updated_at)
