@@ -31,12 +31,12 @@ export default function AdminLogin() {
     }
 
     try {
-      const success = await login(email, password)
+      const result = await login(email, password)
       
-      if (success) {
+      if (result.success) {
         router.push('/admin/dashboard')
       } else {
-        setError('Invalid credentials')
+        setError(result.error || 'Invalid credentials')
       }
     } catch (error) {
       setError('An error occurred. Please try again.')

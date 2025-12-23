@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/lib/auth-jwt'
+import { verifyAccessToken } from '@/lib/auth-jwt'
 import { query } from '@/lib/db'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -23,13 +23,13 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify JWT token
-    const token = request.cookies.get('auth-token')?.value
-    if (!token) {
+    // Verify JWT access token
+    const accessToken = request.cookies.get('access-token')?.value
+    if (!accessToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = verifyToken(token)
+    const user = verifyAccessToken(accessToken)
     if (!user || user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

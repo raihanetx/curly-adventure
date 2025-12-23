@@ -11,9 +11,10 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  login: (email: string, password: string) => Promise<boolean>
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
   loading: boolean
+  refreshToken: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -53,15 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json()
         setUser(data.user)
-        return true
+        return { success: true }
       } else {
         const error = await response.json()
-        console.error('Login failed:', error.error)
-        return false
+        return { success: false, error: error.error }
       }
     } catch (error) {
       console.error('Login error:', error)
-      return false
+      return { success: false, error: 'Network error occurred' }
     }
   }
 
@@ -74,8 +74,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const refreshToken = async () => {
+    try {
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          refreshToken: document.cookie
+            .split('; ')
+            .find(cookie => cookie.trim().startsWith('refresh-token='))
+            ?.split('=')[1]
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Token refreshed successfully')
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, refreshToken }}>
       {children}
     </AuthContext.Provider>
   )

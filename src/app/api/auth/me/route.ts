@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/lib/auth-jwt'
+import { verifyAccessToken } from '@/lib/auth-jwt'
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('auth-token')?.value
+    const accessToken = request.cookies.get('access-token')?.value
 
-    if (!token) {
+    if (!accessToken) {
       return NextResponse.json(
-        { error: 'No token provided' },
+        { error: 'No access token provided' },
         { status: 401 }
       )
     }
 
-    const user = verifyToken(token)
+    const user = verifyAccessToken(accessToken)
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Invalid token' },
+        { error: 'Invalid or expired access token' },
         { status: 401 }
       )
     }
